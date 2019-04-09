@@ -95,7 +95,31 @@ func GetUpdates() (updates []Update) {
 
     updates = responseBody.Result
 
+    HandleUpdate(updates[len(updates)-1])
+
     return
+}
+
+// Receives an update and checks whether or not it has one of the known commands
+// Then calls the function for that command
+func HandleUpdate(update Update) {
+    message := update.Message
+
+    if len(message.Entities) > 0 {
+        // If the message received has at least one entity (that can be commands, usernames, etc)
+        // then will check to see if any of them is a recognized command
+        for _, entity := range message.Entities {
+            if entity.Type == "bot_command" {
+                command := ExtractEntity(message.Body, entity.Offset, entity.Length)
+
+                handler, isDefined := commandHandlers[command]
+                if isDefined {
+                    // If the command is recognized (aka, has been assigned a handler function)
+                    handler(message) // Calls that function
+                }
+            }
+        }
+    }
 }
 
 // Handles the updates received by webhooks
@@ -103,25 +127,10 @@ func HandleUpdates(writer http.ResponseWriter, request* http.Request) {
     if mux.Vars(request)["token"] == token {
         update := DecodeUpdate(request.Body)
 
-        message := update.Message
-
-        if len(message.Entities) > 0 {
-            // If the message received has at least one entity (that can be commands, usernames, etc
-            // Then will check to see if any of them is a recognized command
-            for _, entity := range message.Entities {
-                if entity.Type == "bot_command" {
-                    command := ExtractEntity(message.Body, entity.Offset, entity.Length)
-
-                    handler, isDefined := commandHandlers[command]
-                    if isDefined {
-                        handler(message)
-                    }
-                }
-            }
-        }
+        HandleUpdate(update)
     }
 }
 
 func HandleFunc(command string, function func(*Message)) {
-
+    commandHandlers[command] = function
 }
