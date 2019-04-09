@@ -4,6 +4,7 @@ import (
     // Standard Packages
     "os"
     "log"
+    "strconv"
     "net/url"
     "net/http"
     "encoding/json"
@@ -131,6 +132,34 @@ func HandleUpdates(writer http.ResponseWriter, request* http.Request) {
     }
 }
 
+// Assigns a function to a given command
 func HandleFunc(command string, function func(*Message)) {
     commandHandlers[command] = function
+}
+
+// Sends a text message to the given chat
+func SendMessage(body string, chatId int, parseMode string) {
+    // Create the request
+    requestURL := apiURL + "/sendMessage"
+    parameters := url.Values {
+        "chat_id": {strconv.Itoa(chatId)},
+        "text": {body},
+        "parse_mode": {parseMode},
+    }
+
+    // Make the request
+    _, err := http.PostForm(requestURL, parameters)
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+
+// Sends a Markdown message to the given chat
+func SendMarkdownMessage(body string, chatId int) {
+    SendMessage(body, chatId, "Markdown")
+}
+
+// Sends an HTML message to the given chat
+func SendHTMLMessage(body string, chatId int) {
+    SendMessage(body, chatId, "HTML")
 }
