@@ -4,6 +4,7 @@ import (
     // Standard Packages
     "os"
     "log"
+    "strings"
     "strconv"
     "net/url"
     "net/http"
@@ -22,6 +23,7 @@ var (
     commandHandlers map[string]commandHandler
 
     // Public Attributes
+    CallbackHandler func(*CallbackQuery)
 )
 
 func init() {
@@ -80,12 +82,17 @@ func DeleteWebhook() bool {
 }
 
 // Gets the updates manually
-func GetUpdates() (updates []Update) {
+func GetUpdates(offset int) (updates []Update) {
     // Create the request
     requestURL := apiURL + "/getUpdates"
+    parameters := url.Values {
+        "offset": {strconv.Itoa(offset)},
+        "timeout": {"1"},
+        //"allowed_updates": {"message", "callback_query"},
+    }
 
     // Make the request
-    response, err := http.Get(requestURL)
+    response, err := http.PostForm(requestURL, parameters)
     if err != nil {
         log.Fatal(err)
     }
@@ -96,14 +103,18 @@ func GetUpdates() (updates []Update) {
 
     updates = responseBody.Result
 
-    HandleUpdate(updates[len(updates)-1])
-
     return
 }
 
 // Receives an update and checks whether or not it has one of the known commands
 // Then calls the function for that command
 func HandleUpdate(update Update) {
+    if update.Message == nil {
+        // Handle Callback Query
+        callback := update.CallbackQuery
+        CallbackHandler(callback)
+        return
+    }
     message := update.Message
 
     if len(message.Entities) > 0 {
@@ -135,31 +146,76 @@ func HandleUpdates(writer http.ResponseWriter, request* http.Request) {
 // Assigns a function to a given command
 func HandleFunc(command string, function func(*Message)) {
     commandHandlers[command] = function
+    commandHandlers[command + "@SecretSantainatorBot"] = function // TODO: Change this to take the bot's username
 }
 
-// Sends a text message to the given chat
-func SendMessage(body string, chatId int, parseMode string) {
+// Sends a message with the given parameters
+func SendMessageWithParameters(message MessageRequest) Message {
     // Create the request
     requestURL := apiURL + "/sendMessage"
-    parameters := url.Values {
-        "chat_id": {strconv.Itoa(chatId)},
-        "text": {body},
-        "parse_mode": {parseMode},
-    }
+
 
     // Make the request
-    _, err := http.PostForm(requestURL, parameters)
+    response, err := http.Post(requestURL, "application/json", strings.NewReader(message.AsJSON()))
     if err != nil {
         log.Fatal(err)
     }
+
+    // Parse the response
+    var responseBody MessageResponse
+    json.NewDecoder(response.Body).Decode(&responseBody)
+
+    return *responseBody.Message
+}
+
+// Sends a text message to the given chat
+func SendMessage(body string, chatId int, parseMode string) Message {
+    // Define the parameters
+    var message MessageRequest
+    message.ChatId = chatId
+    message.Body = body
+    message.ParseMode = parseMode
+
+    return SendMessageWithParameters(message)
+}
+
+// Sends a text message to a given chat with an inline keyboard
+func SendMessageWithKeyboard(body string, chatId int, parseMode string, replyMarkup InlineKeyboardMarkup) Message {
+    // Define the parameters
+    var message MessageRequest
+    message.ChatId = chatId
+    message.Body = body
+    message.ParseMode = parseMode
+    message.ReplyMarkup = &replyMarkup
+
+    return SendMessageWithParameters(message)
 }
 
 // Sends a Markdown message to the given chat
-func SendMarkdownMessage(body string, chatId int) {
-    SendMessage(body, chatId, "Markdown")
+func SendMarkdownMessage(body string, chatId int) Message {
+    return SendMessage(body, chatId, "Markdown")
 }
 
 // Sends an HTML message to the given chat
-func SendHTMLMessage(body string, chatId int) {
-    SendMessage(body, chatId, "HTML")
+func SendHTMLMessage(body string, chatId int) Message {
+    return SendMessage(body, chatId, "HTML")
+}
+
+func EditMessageText(chatId int, messageId int, body string, parseMode string) {
+    // Create the request
+    requestURL := apiURL + "/editMessageText"
+    var parameters EditMessageRequest
+    parameters.ChatId = chatId
+    parameters.MessageId = messageId
+    parameters.Body = body
+    parameters.ParseMode = parseMode
+
+    // Make the request
+    log.Println(parameters.AsJSON())
+    response, err := http.Post(requestURL, "application/json", strings.NewReader(parameters.AsJSON()))
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    log.Println(response)
 }

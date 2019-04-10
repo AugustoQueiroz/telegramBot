@@ -10,10 +10,30 @@ type Response struct {
     Result              []Update            `json:"result"`
 }
 
+type MessageResponse struct {
+    Ok                  bool                `json:"ok"`
+    Message             *Message             `json:"result"`
+}
+
 type Update struct {
     // Mandatory Attributes
     Id                  int                 `json:"update_id"`                  // Unique identifier for the update
-    Message             *Message            `json:"message"`                    // New incoming message
+
+    // Optional Attributes
+    Message             *Message            `json:"message,omitempty"`          // New incoming message
+    CallbackQuery       *CallbackQuery      `json:"callback_query,omitempty"`
+}
+
+type CallbackQuery struct {
+    // Mandatory Attributes
+    Id                  int                 `json:"id"`                         //
+    From                *User               `json:"from"`                       //
+    ChatInstance        string              `json:"chat_instance"`              //
+
+    // Optional Attributes
+    Message             *Message            `json:"message,omitempty"`          //
+    InlineMessageId     string              `json:"inline_message_id,omitempty"`
+    Data                string              `json:"data,omitempty"`
 }
 
 type User struct {
@@ -59,6 +79,19 @@ type MessageEntity struct {
     Length              int                 `json:"length"`                                         // Length of the entity in UTF-16 code units
     URL                 string              `json:"url,omitempty"`                                  // URL if "text_link"
     User                *User               `json:"user,omitempty"`                                 // Mentioned user if "text_mention"
+}
+
+type InlineKeyboardMarkup struct {
+    Keyboard            [][]InlineKeyboardButton  `json:"inline_keyboard"`                            // Matrix of the buttons to be presented
+}
+
+type InlineKeyboardButton struct {
+    // Mandatory Attributes
+    Label               string              `json:"text"`                                           // Label on the button
+
+    // Optional Attributes
+    URL                 string              `json:"url,omitempty"`                                  // HTTP or tg:// url to be opened by button press
+    CallbackData        string              `json:"callback_data,omitempty"`                        // Data to be sent in callback to bot on button press
 }
 
 func DecodeUpdate(body io.ReadCloser) (update Update) {
