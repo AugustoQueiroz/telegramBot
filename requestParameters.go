@@ -15,12 +15,18 @@ type MessageRequest struct {
     ReplyMarkup             *InlineKeyboardMarkup            `json:"reply_markup,omitempty"`
 }
 
-type EditMessageRequest struct {
+type EditMessageTextRequest struct {
     ChatId                  int                             `json:"chat_id,omitempty"`
     MessageId               int                             `json:"message_id,omitempty"`
     Body                    string                          `json:"text"`
     ParseMode               string                          `json:"parse_mode,omitempty"`
 //    ReplyMarkup             *InlineKeyboardMarkup            `json:"reply_markup,omitempt"`
+}
+
+type EditMessageReplyMarkupRequest struct {
+    ChatId                  int                             `json:"chat_id"`
+    MessageId               int                             `json:"message_id"`
+    ReplyMarkup             *InlineKeyboardMarkup           `json:"reply_markup"`
 }
 
 // Return the json string of a MessageRequest
@@ -34,10 +40,22 @@ func (request MessageRequest) AsJSON() (JSONString string) {
     return
 }
 
-func (request EditMessageRequest) AsJSON() (JSONString string) {
+func (request EditMessageTextRequest) AsJSON() (JSONString string) {
     JSONObject, err := json.Marshal(&request)
     if err != nil {
-        log.Fatal("Error trying to jsonify EditMessageRequest", err)
+        log.Fatal("Error trying to jsonify EditMessageTextRequest", err)
+    }
+
+    JSONString = string(JSONObject)
+    return
+}
+
+
+
+func (request EditMessageReplyMarkupRequest) AsJSON() (JSONString string) {
+    JSONObject, err := json.Marshal(&request)
+    if err != nil {
+        log.Fatal("Error trying to jsonify EditMessageReplyMarkupRequest", err)
     }
 
     JSONString = string(JSONObject)

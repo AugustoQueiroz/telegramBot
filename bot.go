@@ -204,18 +204,29 @@ func SendHTMLMessage(body string, chatId int) Message {
 func EditMessageText(chatId int, messageId int, body string, parseMode string) {
     // Create the request
     requestURL := apiURL + "/editMessageText"
-    var parameters EditMessageRequest
+    var parameters EditMessageTextRequest
     parameters.ChatId = chatId
     parameters.MessageId = messageId
     parameters.Body = body
     parameters.ParseMode = parseMode
 
     // Make the request
-    log.Println(parameters.AsJSON())
-    response, err := http.Post(requestURL, "application/json", strings.NewReader(parameters.AsJSON()))
+    _, err := http.Post(requestURL, "application/json", strings.NewReader(parameters.AsJSON()))
     if err != nil {
         log.Fatal(err)
     }
+}
 
-    log.Println(response)
+func EditMessageKeyboard(chatId int, messageId int, keyboard InlineKeyboardMarkup) {
+    requestURL := apiURL + "/editMessageReplyMarkup"
+    var parameters EditMessageReplyMarkupRequest
+    parameters.ChatId = chatId
+    parameters.MessageId = messageId
+    parameters.ReplyMarkup = &keyboard
+
+    // Make the request
+    _, err := http.Post(requestURL, "application/json", strings.NewReader(parameters.AsJSON()))
+    if err != nil {
+        log.Fatal(err)
+    }
 }
