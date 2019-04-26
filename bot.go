@@ -2,52 +2,53 @@ package telegramBot
 
 import (
     // Standard Packages
-    "os"
+    _ "os"
     "log"
     "strings"
     "strconv"
     "net/url"
     "net/http"
     "encoding/json"
-
-    // External Packages
-    "github.com/gorilla/mux"
 )
 
 type commandHandler func(*Message)
+type callbackHandler func(*CallbackQuery)
 
-var (
+type Bot struct {
     // Private Attributes
     token           string
-    apiURL          string
+    baseURL          string
     commandHandlers map[string]commandHandler
 
+    username        string
+
     // Public Attributes
-    CallbackHandler func(*CallbackQuery)
-)
+    CallbackHandler callbackHandler
+}
 
-func init() {
-    token = os.Getenv("TELEGRAM_TOKEN")
-    if token == "" {
-        log.Fatal("$TELEGRAM_TOKEN was not set")
-    }
+func NewBot(token string) (bot Bot) {
+    bot.token = token
+    bot.baseURL = "https://api.telegram.org/bot" + token
+    bot.commandHandlers = make(map[string]commandHandler)
 
-    apiURL = "https://api.telegram.org/bot" + token
-
-    commandHandlers = make(map[string]commandHandler)
+    return
 }
 
 // Check wether a given token is this bot's token
-func CheckToken(inputToken string) bool {
-    return inputToken == token
+// - Parameter inputToken: The token being to be tested against the bot token
+// - Returns: True if the received token is the bots token
+func (bot Bot) CheckToken(inputToken string) bool {
+    return inputToken == bot.token
 }
 
 // Sets the bot webhook and returns whether or not it was successful
-func SetWebhook(webhookURL string) bool {
+// - Parameter webhookURL: The url that updates should be sent to
+// - Returns: Whether or not the creation of the webhook was successful
+func (bot Bot) SetWebhook(webhookURL string) bool {
     // Create the request
-    requestURL := apiURL + "/setWebhook"
+    requestURL := bot.baseURL + "/setWebhook"
     parameters := url.Values {
-        "url": {webhookURL + token + "/"},
+        "url": {webhookURL + bot.token + "/"},
     }
 
     // Make the request
@@ -64,9 +65,10 @@ func SetWebhook(webhookURL string) bool {
 }
 
 // Deletes the webhook and returns whether or not was successfull
-func DeleteWebhook() bool {
+// - Returns: True if the deletion of the webhook was successful
+func (bot Bot) DeleteWebhook() bool {
     // Create the request
-    requestURL := apiURL + "/deleteWebhook"
+    requestURL := bot.baseURL + "/deleteWebhook"
 
     // Make the request
     response, err := http.Get(requestURL)
@@ -82,9 +84,11 @@ func DeleteWebhook() bool {
 }
 
 // Gets the updates manually
-func GetUpdates(offset int) (updates []Update) {
+// - Parameter offset: The offset in the updates to be received
+// - Returns: A slice of Update objects
+func (bot Bot) GetUpdates(offset int) (updates []Update) {
     // Create the request
-    requestURL := apiURL + "/getUpdates"
+    requestURL := bot.baseURL + "/getUpdates"
     parameters := url.Values {
         "offset": {strconv.Itoa(offset)},
         "timeout": {"1"},
@@ -108,11 +112,12 @@ func GetUpdates(offset int) (updates []Update) {
 
 // Receives an update and checks whether or not it has one of the known commands
 // Then calls the function for that command
-func HandleUpdate(update Update) {
+// - Parameter update: The update that will be checked for commands
+func (bot Bot) HandleUpdate(update Update) {
     if update.Message == nil {
         // Handle Callback Query
         callback := update.CallbackQuery
-        CallbackHandler(callback)
+        bot.CallbackHandler(callback)
         return
     }
     message := update.Message
@@ -124,7 +129,7 @@ func HandleUpdate(update Update) {
             if entity.Type == "bot_command" {
                 command := ExtractEntity(message.Body, entity.Offset, entity.Length)
 
-                handler, isDefined := commandHandlers[command]
+                handler, isDefined := bot.commandHandlers[command]
                 if isDefined {
                     // If the command is recognized (aka, has been assigned a handler function)
                     handler(message) // Calls that function
@@ -134,25 +139,18 @@ func HandleUpdate(update Update) {
     }
 }
 
-// Handles the updates received by webhooks
-func HandleUpdates(writer http.ResponseWriter, request* http.Request) {
-    if mux.Vars(request)["token"] == token {
-        update := DecodeUpdate(request.Body)
-
-        HandleUpdate(update)
-    }
-}
-
 // Assigns a function to a given command
-func HandleFunc(command string, function func(*Message)) {
-    commandHandlers[command] = function
-    commandHandlers[command + "@SecretSantainatorBot"] = function // TODO: Change this to take the bot's username
+// - Parameter command: The command to be recognized exactly as it is meant to be read
+// - Parameter function: The function to be executed when the command is recognized in a message
+func (bot Bot) HandleFunc(command string, function func(*Message)) {
+    bot.commandHandlers[command] = function
+    bot.commandHandlers[command + "@SecretSantainatorBot"] = function // TODO: Change this to take the bot's username
 }
 
 // Sends a message with the given parameters
-func SendMessageWithParameters(message MessageRequest) Message {
+func (bot Bot) SendMessageWithParameters(message MessageRequest) Message {
     // Create the request
-    requestURL := apiURL + "/sendMessage"
+    requestURL := bot.baseURL + "/sendMessage"
 
 
     // Make the request
@@ -169,18 +167,18 @@ func SendMessageWithParameters(message MessageRequest) Message {
 }
 
 // Sends a text message to the given chat
-func SendMessage(body string, chatId int, parseMode string) Message {
+func (bot Bot) SendMessage(body string, chatId int, parseMode string) Message {
     // Define the parameters
     var message MessageRequest
     message.ChatId = chatId
     message.Body = body
     message.ParseMode = parseMode
 
-    return SendMessageWithParameters(message)
+    return bot.SendMessageWithParameters(message)
 }
 
 // Sends a text message to a given chat with an inline keyboard
-func SendMessageWithKeyboard(body string, chatId int, parseMode string, replyMarkup InlineKeyboardMarkup) Message {
+func (bot Bot) SendMessageWithKeyboard(body string, chatId int, parseMode string, replyMarkup InlineKeyboardMarkup) Message {
     // Define the parameters
     var message MessageRequest
     message.ChatId = chatId
@@ -188,22 +186,22 @@ func SendMessageWithKeyboard(body string, chatId int, parseMode string, replyMar
     message.ParseMode = parseMode
     message.ReplyMarkup = &replyMarkup
 
-    return SendMessageWithParameters(message)
+    return bot.SendMessageWithParameters(message)
 }
 
 // Sends a Markdown message to the given chat
-func SendMarkdownMessage(body string, chatId int) Message {
-    return SendMessage(body, chatId, "Markdown")
+func (bot Bot) SendMarkdownMessage(body string, chatId int) Message {
+    return bot.SendMessage(body, chatId, "Markdown")
 }
 
 // Sends an HTML message to the given chat
-func SendHTMLMessage(body string, chatId int) Message {
-    return SendMessage(body, chatId, "HTML")
+func (bot Bot) SendHTMLMessage(body string, chatId int) Message {
+    return bot.SendMessage(body, chatId, "HTML")
 }
 
-func EditMessageText(chatId int, messageId int, body string, parseMode string) {
+func (bot Bot) EditMessageText(chatId int, messageId int, body string, parseMode string) {
     // Create the request
-    requestURL := apiURL + "/editMessageText"
+    requestURL := bot.baseURL + "/editMessageText"
     var parameters EditMessageTextRequest
     parameters.ChatId = chatId
     parameters.MessageId = messageId
@@ -217,8 +215,8 @@ func EditMessageText(chatId int, messageId int, body string, parseMode string) {
     }
 }
 
-func EditMessageKeyboard(chatId int, messageId int, keyboard InlineKeyboardMarkup) {
-    requestURL := apiURL + "/editMessageReplyMarkup"
+func (bot Bot) EditMessageKeyboard(chatId int, messageId int, keyboard InlineKeyboardMarkup) {
+    requestURL := bot.baseURL + "/editMessageReplyMarkup"
     var parameters EditMessageReplyMarkupRequest
     parameters.ChatId = chatId
     parameters.MessageId = messageId
