@@ -5,9 +5,9 @@ import (
     "encoding/json"
 )
 
-type Response struct {
+type UpdatesResponse struct {
     Ok                  bool                `json:"ok"`
-    Result              []Update            `json:"result"`
+    Updates             []Update            `json:"result"`
 }
 
 type MessageResponse struct {
