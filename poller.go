@@ -5,15 +5,15 @@ import (
     "time"
 )
 
-func Poller() {
+func (bot Bot) Poller() {
     updateOffset := 0
 
     for {
         <-time.After(time.Second)
-        updates := GetUpdates(updateOffset)
+        updates := bot.GetUpdates(updateOffset)
 
         for _, update := range updates {
-            HandleUpdate(update)
+            bot.HandleUpdate(update)
             updateOffset = update.Id + 1
             log.Println(updateOffset)
         }
