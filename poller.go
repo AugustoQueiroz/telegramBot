@@ -5,7 +5,7 @@ import (
     "time"
 )
 
-func (bot Bot) Poller() {
+func (bot *Bot) Poller() {
     updateOffset := 0
 
     for {

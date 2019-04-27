@@ -14,7 +14,7 @@ import (
 // Sets the bot webhook and returns whether or not it was successful
 // - Parameter webhookURL: The url that updates should be sent to
 // - Returns: Whether or not the creation of the webhook was successful
-func (bot Bot) SetWebhook(webhookURL string) bool {
+func (bot *Bot) SetWebhook(webhookURL string) bool {
     // Create the request
     requestURL := bot.baseURL + "/setWebhook"
     parameters := url.Values {
@@ -36,7 +36,7 @@ func (bot Bot) SetWebhook(webhookURL string) bool {
 
 // Deletes the webhook and returns whether or not was successfull
 // - Returns: True if the deletion of the webhook was successful
-func (bot Bot) DeleteWebhook() bool {
+func (bot *Bot) DeleteWebhook() bool {
     // Create the request
     requestURL := bot.baseURL + "/deleteWebhook"
 
@@ -56,7 +56,7 @@ func (bot Bot) DeleteWebhook() bool {
 // Receives an update and checks whether or not it has one of the known commands
 // Then calls the function for that command
 // - Parameter update: The update that will be checked for commands
-func (bot Bot) HandleUpdate(update Update) {
+func (bot *Bot) HandleUpdate(update Update) {
     if update.Message == nil {
         // Handle Callback Query
         callback := update.CallbackQuery
@@ -85,7 +85,7 @@ func (bot Bot) HandleUpdate(update Update) {
 // Gets the updates manually
 // - Parameter offset: The offset in the updates to be received
 // - Returns: A slice of Update objects
-func (bot Bot) GetUpdates(offset int) (updates []Update) {
+func (bot *Bot) GetUpdates(offset int) (updates []Update) {
     // Create the request
     requestURL := bot.baseURL + "/getUpdates"
     parameters := url.Values {

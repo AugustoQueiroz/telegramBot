@@ -10,7 +10,7 @@ import (
 )
 
 // Sends a message with the given parameters
-func (bot Bot) SendMessageWithParameters(message MessageRequest) Message {
+func (bot *Bot) SendMessageWithParameters(message MessageRequest) Message {
     // Create the request
     requestURL := bot.baseURL + "/sendMessage"
 
@@ -25,11 +25,11 @@ func (bot Bot) SendMessageWithParameters(message MessageRequest) Message {
     var responseBody MessageResponse
     json.NewDecoder(response.Body).Decode(&responseBody)
 
-    return *responseBody.Message
+    return *responseBody.Result
 }
 
 // Sends a text message to the given chat
-func (bot Bot) SendMessage(body string, chatId int, parseMode string) Message {
+func (bot *Bot) SendMessage(body string, chatId int, parseMode string) Message {
     // Define the parameters
     var message MessageRequest
     message.ChatId = chatId
@@ -40,7 +40,7 @@ func (bot Bot) SendMessage(body string, chatId int, parseMode string) Message {
 }
 
 // Sends a text message to a given chat with an inline keyboard
-func (bot Bot) SendMessageWithKeyboard(body string, chatId int, parseMode string, replyMarkup InlineKeyboardMarkup) Message {
+func (bot *Bot) SendMessageWithKeyboard(body string, chatId int, parseMode string, replyMarkup InlineKeyboardMarkup) Message {
     // Define the parameters
     var message MessageRequest
     message.ChatId = chatId
@@ -52,16 +52,16 @@ func (bot Bot) SendMessageWithKeyboard(body string, chatId int, parseMode string
 }
 
 // Sends a Markdown message to the given chat
-func (bot Bot) SendMarkdownMessage(body string, chatId int) Message {
+func (bot *Bot) SendMarkdownMessage(body string, chatId int) Message {
     return bot.SendMessage(body, chatId, "Markdown")
 }
 
 // Sends an HTML message to the given chat
-func (bot Bot) SendHTMLMessage(body string, chatId int) Message {
+func (bot *Bot) SendHTMLMessage(body string, chatId int) Message {
     return bot.SendMessage(body, chatId, "HTML")
 }
 
-func (bot Bot) EditMessageText(chatId int, messageId int, body string, parseMode string) {
+func (bot *Bot) EditMessageText(chatId int, messageId int, body string, parseMode string) {
     // Create the request
     requestURL := bot.baseURL + "/editMessageText"
     var parameters EditMessageTextRequest
@@ -77,7 +77,7 @@ func (bot Bot) EditMessageText(chatId int, messageId int, body string, parseMode
     }
 }
 
-func (bot Bot) EditMessageKeyboard(chatId int, messageId int, keyboard InlineKeyboardMarkup) {
+func (bot *Bot) EditMessageKeyboard(chatId int, messageId int, keyboard InlineKeyboardMarkup) {
     requestURL := bot.baseURL + "/editMessageReplyMarkup"
     var parameters EditMessageReplyMarkupRequest
     parameters.ChatId = chatId

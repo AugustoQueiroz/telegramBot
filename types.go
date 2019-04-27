@@ -12,7 +12,7 @@ type UpdatesResponse struct {
 
 type MessageResponse struct {
     Ok                  bool                `json:"ok"`
-    Message             *Message             `json:"result"`
+    Result              *Message            `json:"result"`
 }
 
 type Update struct {
