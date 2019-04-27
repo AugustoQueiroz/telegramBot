@@ -68,5 +68,5 @@ func (bot *Bot) CheckToken(inputToken string) bool {
 // - Parameter function: The function to be executed when the command is recognized in a message
 func (bot *Bot) HandleFunc(command string, function func(*Message)) {
     bot.commandHandlers[command] = function
-    bot.commandHandlers[command + "@SecretSantainatorBot"] = function // TODO: Change this to take the bot's username
+    bot.commandHandlers[command + "@" + bot.username] = function // TODO: Change this to take the bot's username
 }
